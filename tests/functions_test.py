@@ -1,5 +1,6 @@
 from pyspark.sql import SparkSession
 import pytest
+import numpy as np
 
 @pytest.fixture
 def spark() -> SparkSession:
@@ -9,6 +10,7 @@ def spark() -> SparkSession:
   return SparkSession.builder.getOrCreate()
 
 def test_positive_column_train(spark):
-  spark.sql(f'USE hive_metastore.fareprediction')
-  min = spark.sql(f'SELECT MIN(fare_amount) FROM train')
-  assert min > 0
+  data_train = spark.read.table(f"fareprediction.train") 
+  trip_distance = data_train.select("trip_distance").toPandas()
+  min_v = trip_distance.trip_distance.min()
+  assert min_v >= 0
