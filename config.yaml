@@ -1,5 +1,5 @@
 raw_data_name: samples.nyctaxi.trips
-database_name: feature_data
+database_name: fareprediction
 processed_data_name: processed_data
 features_data_name: features_data
-model_name: fare-prediction
+model_name: fareprediction

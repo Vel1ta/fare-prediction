@@ -5,38 +5,74 @@ import yaml
 from pyspark.sql import functions as F
 
 # Data Prep
-from data_prep import get_data_id
-from data_prep import get_data_df
+from data.data_prep import get_data_id
+from data.data_prep import get_data_df
 
 
 # Data Bricks Features Libraries
-import uuid 
 from databricks.feature_store.client import FeatureStoreClient
 from databricks.feature_store.entities.feature_lookup import FeatureLookup
 
+# Get data Fucntion
+def get_data(config, training_labels, exclude):
+    fs = FeatureStoreClient()
+    model_name = config['model_name']
+    
+    feature_lookups = [
+        FeatureLookup(
+            table_name=f"{model_name}.dropoff",
+            feature_names=["dropoff_zip", 
+                           "tpep_dropoff_datetime_year",
+                           "tpep_dropoff_datetime_month", 
+                           "tpep_dropoff_datetime_day",
+                           "tpep_dropoff_datetime_hour"],
+            lookup_key="trip_id",
+            timestamp_lookup_key="datetime",      
+        ),
+        FeatureLookup(
+            table_name=f"{model_name}.pickup",
+            feature_names=["pickup_zip", 
+                           "tpep_pickup_datetime_year",
+                           "tpep_pickup_datetime_month", 
+                           "tpep_pickup_datetime_day",
+                           "tpep_pickup_datetime_hour"],
+            lookup_key="trip_id",
+            timestamp_lookup_key="datetime",      
+        ),  
+        ]
 
+    if exclude:
+        excluded_cols = ["trip_id", "datetime"]
+
+    else: 
+        excluded_cols = []
+
+    training_set = fs.create_training_set(
+    training_labels,
+    feature_lookups=feature_lookups,
+    exclude_columns=excluded_cols,
+    label="fare_amount",
+    )
+    training_df = training_set.load_df()
+
+    return training_df
+
+#Main
 def main():
     # Read Config
     with open('../config.yaml') as f:
         config = yaml.load(f, Loader=yaml.SafeLoader)
 
     raw_data_name = config['raw_data_name']
-    processed_data_name = config['processed_data_name']
     database_name = config['database_name']
     model_name = config['model_name']
 
-    # Name Data
-    run_id = str(uuid.uuid4()).replace('-', '')
- 
-    database_name = f"fare_prediction_{run_id}"
-    model_name = f"pit_demo_model_{run_id}"
-    
+
     # Create the database
     spark.sql(f"CREATE DATABASE IF NOT EXISTS {database_name}")
 
     data = spark.read.table(raw_data_name)
     dateColumns = ["tpep_pickup_datetime", "tpep_dropoff_datetime"]
-    categoricalColumns = dateColumns + ["pickup_zip", "dropoff_zip"]
 
     data = get_data_id(data, "trip_id")
     data = get_data_df(data, dateColumns)
@@ -73,12 +109,11 @@ def main():
                     "tpep_pickup_datetime_day",
                     "tpep_pickup_datetime_hour",
     )
-
-
-    fs = FeatureStoreClient()
     
+    fs = FeatureStoreClient()
+
     fs.create_table(
-        f"{database_name}.core",
+        f"{model_name}.core",
         primary_keys=["trip_id"],
         timestamp_keys=["datetime"],
         df=data_core,
@@ -86,21 +121,30 @@ def main():
     ) 
 
     fs.create_table(
-        f"{database_name}.dropoff",
+        f"{model_name}.dropoff",
         primary_keys=["trip_id"],
         timestamp_keys=["datetime"],
         df=data_dropoff,
-        description="Variables unrelated to dates",
+        description="Variables related to dropoff",
     ) 
 
     fs.create_table(
-        f"{database_name}.pickup",
+        f"{model_name}.pickup",
         primary_keys=["trip_id"],
         timestamp_keys=["datetime"],
         df=data_pickup,
-        description="Variables unrelated to dates",
-    ) 
+        description="Variables related to pickup",
+    )
 
+    data_train = get_data(config, data_core, False)
+
+    fs.create_table(
+        f"{model_name}.train",
+        primary_keys=["trip_id"],
+        timestamp_keys=["datetime"],
+        df=data_train,
+        description="Training dataset",
+    )
 
 # Main execution
 if __name__=="__main__":

@@ -7,7 +7,7 @@ from pyspark.sql import SparkSession
 import pyspark
 
 # Data Bricks Features Libraries
-import uuid 
+
 #from databricks.feature_store.client import FeatureStoreClient
 #from databricks.feature_store.entities.feature_lookup import FeatureLookup
 
@@ -52,38 +52,3 @@ def get_encode_df(df, columns_to_encode):
 
     return encoded_df
 
-
-def main():
-    # Read Config
-    with open('../config.yaml') as f:
-        config = yaml.load(f, Loader=yaml.SafeLoader)
-
-    raw_data_name = config['raw_data_name']
-    processed_data_name = config['processed_data_name']
-    database_name = config['database_name']
-    model_name = config['model_name']
-
-    # Name Data
-    run_id = str(uuid.uuid4()).replace('-', '')
- 
-    database_name = f"fare_prediction_{run_id}"
-    model_name = f"pit_demo_model_{run_id}"
-    
-    # Create the database
-    spark.sql(f"CREATE DATABASE IF NOT EXISTS {database_name}")
-
-    data = spark.read.table(raw_data_name)
-    dateColumns = ["tpep_pickup_datetime", "tpep_dropoff_datetime"]
-    categoricalColumns = dateColumns + ["pickup_zip", "dropoff_zip"]
-
-    data = get_data_id(data, "trip_id")
-    data = get_data_df(data, dateColumns)
-
-    
-
-    
-    
-
-# Main execution
-if __name__=="__main__":
-    main()
