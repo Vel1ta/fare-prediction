@@ -1,6 +1,8 @@
 ## Basic Libraries
 import mlflow
 import yaml
+import pandas as pd
+from datetime import datetime, timedelta
 
 def main():
     with open('../config.yaml') as f:
@@ -16,13 +18,16 @@ def main():
                         order_by=['metrics.mean_squared_error ASC']
                         )
     
+    today = datetime.utcnow(pd.to_datetime(today) +
+                         timedelta(hours=-2))
+    runs_df['start_time'] = pd.to_datetime(runs_df.start_time).dt.tz_localize(None)
+    runs_df = runs_df[runs_df.start_time > today].reset_index(drop=True)
+    
+    # Load a recent run
     best_run = runs_df.iloc[0]
     best_artifact_uri = best_run['artifact_uri']
 
-    # Load model
-    print(best_artifact_uri)
-
-    # Register model
+    #Register model
     result = mlflow.register_model(
         best_artifact_uri+'/model', config["model_name"]
     )
