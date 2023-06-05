@@ -8,7 +8,6 @@ from pyspark.sql import functions as F
 from data.data_prep import get_data_id
 from data.data_prep import get_data_df
 
-
 # Data Bricks Features Libraries
 from databricks.feature_store.client import FeatureStoreClient
 from databricks.feature_store.entities.feature_lookup import FeatureLookup

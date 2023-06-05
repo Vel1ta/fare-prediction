@@ -38,7 +38,7 @@ def main():
     from datetime import datetime
 
     # To write to a unity catalog table, see instructions above
-    results.write.save(f"{output_table_path}_{datetime.now().isoformat()}".replace(":", "."))
+    #results.write.save(f"{output_table_path}_{datetime.now().isoformat()}".replace(":", "."))
     
     print(results.show())
 
