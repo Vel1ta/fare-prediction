@@ -18,8 +18,8 @@ def main():
                         order_by=['metrics.mean_squared_error ASC']
                         )
     
-    today = datetime.utcnow(pd.to_datetime(today) +
-                         timedelta(hours=-2))
+    today = datetime.utcnow()
+    today = pd.to_datetime(today) + timedelta(hours=-2)
     runs_df['start_time'] = pd.to_datetime(runs_df.start_time).dt.tz_localize(None)
     runs_df = runs_df[runs_df.start_time > today].reset_index(drop=True)
     
